@@ -1,0 +1,74 @@
+# ============================
+# Python artifacts
+# ============================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.mypy_cache/
+*.coverage
+*.egg-info/
+*.egg
+
+# ============================
+# Virtual environments
+# ============================
+venv/
+env/
+.env/
+
+# ============================
+# Terraform
+# ============================
+# Local .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Terraform plan files
+*.tfplan
+
+# CLI configuration files
+.terraform/
+.terraform.lock.hcl
+
+# Ignore Terraform override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ============================
+# Lambda build artifacts
+# ============================
+# Zip packages
+services/*/*.zip
+
+# Optional: compiled dependencies
+services/*/__pycache__/
+services/*/*.pyc
+
+# ============================
+# AWS / IDE / OS
+# ============================
+*.log
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ============================
+# Scripts outputs (optional)
+# ============================
+scripts/*.log
+
+# ============================
+# Environment / secrets
+# ============================
+.env
+*.secret

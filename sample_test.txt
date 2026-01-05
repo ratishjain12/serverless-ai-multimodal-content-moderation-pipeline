@@ -1,0 +1,9 @@
+Hello, this is a test message for the content moderation pipeline.
+
+This file contains:
+- Some normal text for testing.
+- A fake email: test@example.com
+- Some placeholder offensive words: [badword1], [badword2]
+- Random numbers: 12345
+
+End of file.
