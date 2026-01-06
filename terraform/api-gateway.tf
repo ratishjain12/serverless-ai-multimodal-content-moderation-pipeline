@@ -9,7 +9,7 @@ resource "aws_lambda_function" "upload_api" {
   timeout       = 10
   environment {
     variables = {
-      UPLOAD_BUCKET  = "content-moderation-input"
+      UPLOAD_BUCKET  = aws_s3_bucket.content_input.bucket
       URL_EXPIRATION = "300"
     }
   }
