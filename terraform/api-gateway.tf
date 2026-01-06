@@ -4,7 +4,7 @@ resource "aws_lambda_function" "upload_api" {
   role          = aws_iam_role.lambda_execution.arn
   runtime       = "python3.11"
   handler       = "handler.handler"
-  filename      = "../services/UploadAPI/UploadAPI.zip"
+  filename      = "../services/UploadApi/UploadApi.zip"
   memory_size   = 256
   timeout       = 10
   environment {
