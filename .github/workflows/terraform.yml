@@ -1,0 +1,62 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+      - prod
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ✅ Use your Python script to build Lambda ZIPs
+      - name: Build Lambda artifacts
+        run: |
+          python scripts/build_lambdas.py
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=content-moderation-tf-state" \
+            -backend-config="key=content-moderation/${{ github.ref_name }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=terraform-locks"
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="environment=${{ github.ref_name }}"
+
+      - name: Terraform Apply
+        if: github.ref_name == 'dev' || github.ref_name == 'prod'
+        working-directory: terraform
+        run: |
+          terraform apply -auto-approve \
+            -var="environment=${{ github.ref_name }}"
