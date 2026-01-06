@@ -1,28 +1,80 @@
 import boto3
 
 comprehend = boto3.client("comprehend")
+s3 = boto3.client("s3")
 
-def handler(event,context):
-    # Expecting S3 key or direct text in the event
+# Adjustable confidence thresholds
+TOXICITY_THRESHOLD = 0.7
+SEVERE_THRESHOLD = 0.8
+
+def handler(event, context):
     text = event.get("text")
     content_id = event.get("contentId")
 
+    # Optional S3 input
     if not text:
-        # Optionally, fetch text from S3 if s3InputKey is provided
         s3_key = event.get("s3InputKey")
-        if s3_key:
-            s3 = boto3.client("s3")
-            bucket = event.get("s3Bucket")
-            text = s3.get_object(Bucket=bucket, Key=s3_key)["Body"].read().decode("utf-8")
+        bucket = event.get("s3Bucket")
+        if s3_key and bucket:
+            text = s3.get_object(
+                Bucket=bucket,
+                Key=s3_key
+            )["Body"].read().decode("utf-8")
 
-    # Call Comprehend to detect PII or sentiment/toxicity
-    pii_entities = comprehend.detect_pii_entities(Text=text, LanguageCode="en")["Entities"]
-    # Here, you could add custom logic to flag offensive words etc.
+    if not text:
+        return {
+            "contentId": content_id,
+            "status": "error",
+            "reason": "No text provided"
+        }
 
-    result = {
+    # -------- PII Detection --------
+    pii_response = comprehend.detect_pii_entities(
+        Text=text,
+        LanguageCode="en"
+    )
+
+    pii_entities = [
+        e["Type"] for e in pii_response.get("Entities", [])
+    ]
+
+    # -------- Toxicity / Profanity / Hate --------
+    toxic_response = comprehend.detect_toxic_content(
+        TextSegments=[{"Text": text}],
+        LanguageCode="en"
+    )
+
+    labels = toxic_response["ResultList"][0]["Labels"]
+
+    toxicity_flags = []
+    severe_flags = []
+
+    for label in labels:
+        name = label["Name"]
+        score = label["Score"]
+
+        if score >= TOXICITY_THRESHOLD:
+            toxicity_flags.append({
+                "type": name,
+                "score": round(score, 3)
+            })
+
+        if name in {"HATE_SPEECH", "THREAT"} and score >= SEVERE_THRESHOLD:
+            severe_flags.append(name)
+
+    # -------- Final Decision --------
+    status = "pass"
+
+    if pii_entities or severe_flags:
+        status = "fail"
+    elif toxicity_flags:
+        status = "review"
+
+    return {
         "contentId": content_id,
-        "textLabels": [e["Type"] for e in pii_entities],
-        "status": "fail" if pii_entities else "pass"
+        "status": status,
+        "moderation": {
+            "pii": pii_entities,
+            "toxicity": toxicity_flags
+        }
     }
-
-    return result
